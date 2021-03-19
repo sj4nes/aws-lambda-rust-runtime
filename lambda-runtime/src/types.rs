@@ -130,12 +130,18 @@ impl TryFrom<HeaderMap> for Context {
             .expect("Missing deadline"),
          invoked_function_arn: match headers.get("lambda-runtime-invoked-function-arn") {
             None => "".to_string(),
-            Some(ifa) => ifa.to_str().expect("Weird ARN").to_owned(),
+            Some(ifa) => ifa
+               .to_str()
+               .expect("Missing ARN (usually a sam local issue)")
+               .to_owned(),
          },
-         xray_trace_id: headers["lambda-runtime-trace-id"]
-            .to_str()
-            .expect("Invalid XRayTraceID sent by Lambda; this is a bug")
-            .to_owned(),
+         xray_trace_id: match headers.get("lambda-runtime-trace-id") {
+            None => "".to_string(),
+            Some(rti) => rti
+               .to_str()
+               .expect("Invalid XRayTraceID sent by Lambda; this is a bug or sam local failed to provide")
+               .to_owned(),
+         },
          ..Default::default()
       };
       Ok(ctx)
